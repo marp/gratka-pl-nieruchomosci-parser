@@ -40,7 +40,7 @@ include_once('./parser/simple_html_dom.php');
             $this->url = $el->find('a', 0)->getAttribute('href');
 
             $this->title = $el->find('h2.teaser__title', 0)->find('a.teaser__anchor', 0)->plaintext;
-            echo "<br>Tajtle: ".$this->title;
+            echo "<br>Title: ".$this->title;
 
             $this->location = @$el->find('h3.teaser__location', 0)->plaintext;
 
@@ -77,9 +77,7 @@ include_once('./parser/simple_html_dom.php');
             foreach ($scripts_array as $s){
                 $scripts .= $s->innertext;
             }
-            echo "Scripts:".count($scripts_array);
-
-            //$photos = $details->find("script",32)->innertext;
+            //echo "Scripts:".count($scripts_array);
 
             preg_match('/dataJson\s*:\s*([^\]]+)/', $scripts, $photos_matches);
             if(isset($photos_matches[0])){
@@ -87,12 +85,9 @@ include_once('./parser/simple_html_dom.php');
                 $photos_matches = explode("dataJson: [",$photos_matches);
                 $decoded = json_decode($photos_matches[1]);
                 $this->photos = $decoded->data;
-//                foreach ($photos_json as $row) {
-//                    echo "<br>".$row->url;
-//                }
             }else{
                 $this->photos = null;
-                echo "<br><b>Ustawianie zdjec na null</b>";
+                echo "<br><b>Setting photos to null.</b></b>";
             }
 
             $uri_segments = explode('/', $this->url);
