@@ -10,7 +10,7 @@ include_once('./connection.php');
     $stmt = $stmt->fetch(PDO::FETCH_BOTH);
     $queryLastUpdated = $stmt['last_updated'];
     $queryLastPage = $stmt['last_page'];
-    $pagesToUpdate = 1;
+    $pagesToUpdate = 10;
     $range = getRange();
 
     if($queryLastPage==0){

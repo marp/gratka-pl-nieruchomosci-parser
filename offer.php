@@ -14,6 +14,7 @@ include_once('./parser/simple_html_dom.php');
         public $price;
         public $phone;
         public $offerOwner;
+        public $offer_type;
 
         //details
         public $terrain_area;
@@ -70,13 +71,13 @@ include_once('./parser/simple_html_dom.php');
 
         public function downloadDetails(){
             $details = file_get_html($this->url);
+
             $scripts_array = $details->find('script');
             $scripts = "";
             foreach ($scripts_array as $s){
-                echo "Scripts:".count($scripts_array);
-
                 $scripts .= $s->innertext;
             }
+            echo "Scripts:".count($scripts_array);
 
             //$photos = $details->find("script",32)->innertext;
 
@@ -106,6 +107,33 @@ include_once('./parser/simple_html_dom.php');
                 $this->description = "";
             }
 
+            if(stripos($this->description, 'mieszkanie') !== false) {
+                $this->offer_type = 1;
+            }elseif(stripos($this->description, 'dom') !== false){
+                $this->offer_type = 2;
+            }elseif(stripos($this->description, 'działka') !== false){
+                $this->offer_type = 3;
+            }elseif(stripos($this->description, 'dzialka') !== false){
+                $this->offer_type = 3;
+            }elseif(stripos($this->description, 'mieszkania') !== false){
+                $this->offer_type = 4;
+            }elseif(stripos($this->description, 'lokale') !== false){
+                $this->offer_type = 5;
+            }elseif(stripos($this->description, 'magazyny') !== false){
+                $this->offer_type = 6;
+            }elseif(stripos($this->description, 'magazyn') !== false){
+                $this->offer_type = 6;
+            }elseif(stripos($this->description, 'garaz') !== false){
+                $this->offer_type = 7;
+            }elseif(stripos($this->description, 'garaż') !== false){
+                $this->offer_type = 7;
+            }elseif(stripos($this->description, 'garaże') !== false){
+                $this->offer_type = 7;
+            }else{
+                $this->offer_type = 0;
+            }
+
+
             //OLD PHONE GETTER
             $this->phone = $details->find('a#pokaz-numer-gora', 0);
             if($this->phone){
@@ -119,12 +147,12 @@ include_once('./parser/simple_html_dom.php');
             $terrain = $details->find('ul.parameters__rolled', 0);
             $terrainPlainText = $terrain->plaintext;
             $terrainAreaPattern = 'Powierzchnia działki w m2';
-            $terrainExists = strpos($terrainPlainText ,$terrainAreaPattern);
+            $terrainExists = stripos($terrainPlainText ,$terrainAreaPattern);
             if ($terrainExists == true){
                 echo "terrain found at position: " . $terrainExists."<br>";
                 $terrainElement = $terrain->find('li',3);
                 //echo $terrainElement->plaintext;
-                if(strpos($terrainElement->plaintext, "Powierzchnia działki w m2")==true){
+                if(stripos($terrainElement->plaintext, "Powierzchnia działki w m2")==true){
                     $terrainElement = $terrainElement->find('b',0)->plaintext;
                     preg_match_all('!\d+!', $terrainElement, $this->terrain_area);
                     $this->terrain_area = $this->terrain_area[0][0];
@@ -223,10 +251,18 @@ include_once('./parser/simple_html_dom.php');
             }
 
             $this->company_name = null;
-            $company = $details->find('script', 39);
-            preg_match('/"company":"(.*?)"/', $company->innertext, $company);
+//            $company = $details->find('script', 39);
+            preg_match('/"company":"(.*?)"/', $scripts, $company);
             if(isset($company[1])){
                 $company = preg_replace('/\\\\u([0-9A-F]+)/', '&#x$1;', $company[1]);
+                $company = str_replace("&#x015;b","ś", $company);
+                $company = str_replace("&#x015;a","Ś", $company);
+                $company = str_replace("&#x00;f3","ó", $company);
+                $company = str_replace("&#x00;d3","Ó", $company);
+                $company = str_replace("&#x017;b","Ż", $company);
+                $company = str_replace("&#x017;c","ż", $company);
+                $company = str_replace("&#x017;a","ź", $company);
+                $company = str_replace("&#x00;a0"," ", $company);
                 $company= html_entity_decode($company, ENT_COMPAT, 'UTF-8');
 //                var_dump($company);
                 $this->company_name = $company;
@@ -237,10 +273,19 @@ include_once('./parser/simple_html_dom.php');
             }
 
             $this->person = null;
-            $person = $details->find('script', 39);
-            preg_match('/"person":"(.*?)"/', $person->innertext, $person);
+//            $person = $details->find('script', 39);
+            preg_match('/"person":"(.*?)"/', $scripts, $person);
             if(isset($person[1])){
                 $person = preg_replace('/\\\\u([0-9A-F]+)/', '&#x$1;', $person[1]);
+                $person = str_replace("&#x015;b","ś",$person);
+                $person = str_replace("&#x015;a","Ś", $person);
+                $person = str_replace("&#x00;f3","ó", $person);
+                $person = str_replace("&#x00;d3","Ó", $person);
+                $person = str_replace("&#x017;b","Ż", $person);
+                $person = str_replace("&#x017;c","ż", $person);
+                $person = str_replace("&#x017;a","ź", $person);
+                $person = str_replace("&#x00;a0"," ", $person);
+
                 $person = html_entity_decode($person, ENT_COMPAT, 'UTF-8');
                 $this->person = $person;
             }else{
@@ -259,18 +304,26 @@ include_once('./parser/simple_html_dom.php');
 
             preg_match('/.lokalizacja.szerokosc.geograficzna-y..([\d]+.[\d]+)/', $scripts, $latitude);
             if(isset($latitude[1])){
+                if(is_array($latitude[1])){
+                    echo "<br><br>TO JEST array latitude!<br><br>";
+                    var_dump($latitude[1]);
+                }
                 $this->latitude = $latitude[1];
             }else{
                 $this->latitude = null;
             }
             preg_match('/.lokalizacja.dlugosc.geograficzna-x..([\d]+.[\d]+)/', $scripts, $longitude);
             if(isset($longitude[1])){
+                if(is_array($longitude[1])){
+                    echo "<br><br>TO JEST array longitude!<br><br>";
+                    var_dump($longitude[1]);
+                }
                 $this->longitude = $longitude[1];
             }else{
                 $this->longitude = null;
             }
-            echo "<br>Latitude: <b>".$this->latitude."</b>";
-            echo "<br>Longitude: <b>".$this->longitude."</b>";
+            echo "<br>Latitude: <b>".(float)$this->latitude."</b>";
+            echo "<br>Longitude: <b>".(float)$this->longitude."</b>";
 
 
 
@@ -321,9 +374,10 @@ include_once('./parser/simple_html_dom.php');
                 $geo_level_3 = null;
             }
 
-            $stmt = $conn->prepare("INSERT INTO offers (id_domain, own_id_offer, title, description, geo_level_1, geo_level_2,geo_level_3, price, price_currency, latitude, longitude, offerOwner, phone, person_id, area)	VALUES(
+            $stmt = $conn->prepare("INSERT INTO offers (id_domain, own_id_offer, offer_type, title, description, geo_level_1, geo_level_2,geo_level_3, price, price_currency, latitude, longitude, offerOwner, phone, person_id, area)	VALUES(
             1,
-            :own_id_offer,                                                                                                                                                           
+            :own_id_offer,
+            :offer_type,                                                                                                                                                                                              
             :title,
             :description,                                                                                                                              
             :geo_level_1,
@@ -341,6 +395,7 @@ include_once('./parser/simple_html_dom.php');
 
             $stmt->execute([
                 ':own_id_offer' => $this->id,
+                ':offer_type' => $this->offer_type,
                 ':title' => $this->title,
                 ':description' => $this->description,
                 ':geo_level_1' => $geo_level_1,
